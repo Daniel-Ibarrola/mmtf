@@ -32,6 +32,9 @@ def write_mmtf_file(traj: mdt.Trajectory) -> None:
     assert len(unit_cell) == 6
     encoder.set_xtal_info(space_group="", unit_cell=unit_cell)
 
+    atom_index = 0
+    groups_per_chain = []
+
     # This sets the number of chains for a given model. Here we assume we have only
     # one model so, we only add one chain count
     encoder.set_model_info(model_id=None, chain_count=topology.n_chains)
@@ -52,11 +55,38 @@ def write_mmtf_file(traj: mdt.Trajectory) -> None:
 
         for residue in chain.residues:
 
+            bond_count = []
+
             encoder.set_group_info(
-                group_name="REPLACE ME",
-                group_number=
+                group_name=residue.name,
+                group_number=residue.index,
+                insertion_code="\x00",
+                group_type="",
+                atom_count=residue.n_atoms,
+                bond_count=bond_count,
+                single_letter_code=residue.code,
+                sequence_index=None,
+                secondary_structure_type=-1,
             )
 
+            for atom in residue.atoms:
+
+                encoder.set_atom_info(
+                    atom_name=atom.name,
+                    serial_number=atom.serial,
+                    alternative_location_id="\x00",
+                    x=trajectory.xyz[0, atom_index, 1],
+                    y=trajectory.xyz[0, atom_index, 2],
+                    z=trajectory.xyz[0, atom_index, 3],
+                    occupancy=None,
+                    temperature_factor=None,
+                    element=atom.element.name,
+                    charge=0,
+                )
+
+    encoder.groups_per_chain = groups_per_chain
+
+    encoder.finalize_structure()
     encoder.write_file("./temp.mmtf")
 
 
