@@ -20,28 +20,11 @@ def load_mmft_with_mdanalysis():
 def load_gromacs_file():
     traj = mdt.load("md_1u19.gro")
     assert isinstance(traj, mdt.Trajectory)
-    print(traj)
-    print(traj.n_atoms)
-
-
-def parse_with_mmtf():
-    decoder = mmtf.parse("1sux.mmtf")
-    # With decoder.group_type_list we can obtain a list of the group
-    # to which each resiude belongs to. Groups contain information
-    # about atom names, bonds, etc
-
-    # Group type list is a list of dictionaries where each entry
-    # has the following structure
-    # {'groupName': 'ALA',
-    #  'atomNameList': ['N', 'CA', 'C', 'O', 'CB'],
-    #  'elementList': ['N', 'C', 'C', 'O', 'C'],
-    #  'bondOrderList': [1, 1, 2, 1],
-    #  'bondAtomList': [1, 0, 2, 1, 3, 2, 4, 1],
-    #  'formalChargeList': [0, 0, 0, 0, 0],
-    #  'singleLetterCode': 'A',
-    #  'chemCompType': 'L-PEPTIDE LINKING'}
+    topology = traj.topology
+    bonds_list = list(topology.bonds)
+    print(bonds_list[0])
 
 
 if __name__ == "__main__":
-    load_mmft_with_mdanalysis()
-    # load_gromacs_file()
+    # load_mmft_with_mdanalysis()
+    load_gromacs_file()

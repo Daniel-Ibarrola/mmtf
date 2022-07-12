@@ -44,8 +44,6 @@ def traverse_mmtf(decoder):
                 #     print(atom_offset + group["bondAtomList"][ii * 2 + 1])
 
                 group_atom_count = len(group["atomNameList"])
-                if atom_index >= decoder.num_atoms:
-                    continue
                 for jj in range(group_atom_count):
                     coords = [
                         decoder.x_coord_list[atom_index],
