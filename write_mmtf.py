@@ -18,6 +18,7 @@ def write_mmtf_file(traj: mdt.Trajectory) -> None:
         structure_id="5ZMZ"
     )
 
+    # TODO: can we get metadata from an mdtraj trajectory?
     encoder.set_header_info(
         r_free=None,
         r_work=None,
@@ -28,6 +29,8 @@ def write_mmtf_file(traj: mdt.Trajectory) -> None:
         experimental_methods=None,
     )
 
+    # We convert the following arrays from numpy.float32
+    # to float because the encoder can't handle the former
     unit_cell = [float(x) for x in traj.unitcell_lengths[0]]
     unit_cell += [float(x) for x in traj.unitcell_angles[0]]
     assert len(unit_cell) == 6
@@ -37,6 +40,7 @@ def write_mmtf_file(traj: mdt.Trajectory) -> None:
     # This sets the number of chains for a given model. Here we assume we have only
     # one model so, we only add one chain count
     encoder.set_model_info(model_id=None, chain_count=topology.n_chains)
+    sequence = ""
     for chain in topology.chains:
 
         # encoder.set_entity_info(
