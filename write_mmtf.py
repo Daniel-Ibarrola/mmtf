@@ -28,12 +28,11 @@ def write_mmtf_file(traj: mdt.Trajectory) -> None:
         experimental_methods=None,
     )
 
-    unit_cell = list(traj.unitcell_lengths[0, :]) + list(traj.unitcell_angles[0, :])
+    unit_cell = [float(x) for x in traj.unitcell_lengths[0]]
+    unit_cell += [float(x) for x in traj.unitcell_angles[0]]
     assert len(unit_cell) == 6
-    encoder.set_xtal_info(space_group="", unit_cell=unit_cell)
 
-    atom_index = 0
-    groups_per_chain = []
+    encoder.set_xtal_info(space_group="", unit_cell=unit_cell)
 
     # This sets the number of chains for a given model. Here we assume we have only
     # one model so, we only add one chain count
@@ -47,15 +46,14 @@ def write_mmtf_file(traj: mdt.Trajectory) -> None:
         #     entity_type=None
         # )
 
+        chain_name = chr(ord('A') + chain.index % 26)
         encoder.set_chain_info(
-            chain_id=chain.index,
-            chain_name="REPLACE ME",
+            chain_id=chain_name,
+            chain_name="\x00",
             num_groups=chain.n_residues
         )
 
         for residue in chain.residues:
-
-            bond_count = []
 
             encoder.set_group_info(
                 group_name=residue.name,
@@ -63,9 +61,9 @@ def write_mmtf_file(traj: mdt.Trajectory) -> None:
                 insertion_code="\x00",
                 group_type="",
                 atom_count=residue.n_atoms,
-                bond_count=bond_count,
+                bond_count=0,  # This parameter is not used in mmtf-python
                 single_letter_code=residue.code,
-                sequence_index=None,
+                sequence_index=-1,
                 secondary_structure_type=-1,
             )
 
@@ -75,16 +73,42 @@ def write_mmtf_file(traj: mdt.Trajectory) -> None:
                     atom_name=atom.name,
                     serial_number=atom.serial,
                     alternative_location_id="\x00",
-                    x=trajectory.xyz[0, atom_index, 1],
-                    y=trajectory.xyz[0, atom_index, 2],
-                    z=trajectory.xyz[0, atom_index, 3],
-                    occupancy=None,
-                    temperature_factor=None,
-                    element=atom.element.name,
+                    x=float(trajectory.xyz[0, atom.index, 0]),
+                    y=float(trajectory.xyz[0, atom.index, 1]),
+                    z=float(trajectory.xyz[0, atom.index, 2]),
+                    occupancy=1.0,
+                    temperature_factor=0,
+                    element=atom.element.symbol,
                     charge=0,
                 )
 
-    encoder.groups_per_chain = groups_per_chain
+    for bond in topology.bonds:
+
+        bond_order = bond.order
+        if bond_order is None:
+            bond_order = 1
+        # Check if it's an intra-residue bond
+        if bond.atom1.residue.index == bond.atom2.residue.index:
+
+            encoder.current_group = encoder.group_list[bond.atom1.residue.index]
+
+            residue_n_atoms = bond.atom1.residue.n_atoms
+            atom_1_index = bond.atom1.index % residue_n_atoms
+            atom_2_index = bond.atom2.index % residue_n_atoms
+            # This method expects the atom index inside the residue or group
+            encoder.set_group_bond(
+                atom_index_one=atom_1_index,
+                atom_index_two=atom_2_index,
+                bond_order=bond_order
+            )
+        # If not it is an inter-residue bond
+        else:
+            # This method expects the atom index of the whole structure
+            encoder.set_inter_group_bond(
+                atom_index_one=bond.atom1.index,
+                atom_index_two=bond.atom2.index,
+                bond_order=bond_order
+            )
 
     encoder.finalize_structure()
     encoder.write_file("./temp.mmtf")
